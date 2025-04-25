@@ -41,6 +41,23 @@ function truncateText(text, maxWidth, charWidth = 7) {
     return text.length > maxChars ? text.slice(0, maxChars - 3) + '...' : text; // Add ellipsis if truncated
 }
 
+async function fetchImageAsBase64(url) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.error(`Error fetching image: ${response.status} ${response.statusText}`);
+            return null;
+        }
+        const buffer = await response.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        const mimeType = response.headers.get('content-type');
+        return `data:${mimeType};base64,${base64}`;
+    } catch (error) {
+        console.error('Error converting image to Base64:', error.message);
+        return null;
+    }
+}
+
 async function getLatestTrackData() {
     try {
         const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${LASTFM_USERNAME}&api_key=${LASTFM_API_KEY}&format=json`;
@@ -58,16 +75,19 @@ async function getLatestTrackData() {
             const nowPlaying = track['@attr'] && track['@attr'].nowplaying === 'true';
             const title = truncateText(track.name, 220); // Truncate title to fit within 220px
             const artist = truncateText(track.artist['#text'], 185); // Truncate artist to fit within 220px
-            const cover = track.image && track.image.length > 0 ? track.image[track.image.length - 1]['#text'] : '/placeholder.png'; // Fallback to placeholder
+            const coverUrl = track.image && track.image.length > 0 ? track.image[track.image.length - 1]['#text'] : null;
+            const cover = coverUrl ? await fetchImageAsBase64(coverUrl) : null;
 
             // If no "now playing" track, get the most recently played song
             if (!nowPlaying && data.recenttracks.track.length > 1) {
                 const recentTrack = data.recenttracks.track[1];
+                const recentCoverUrl = recentTrack.image && recentTrack.image.length > 0 ? recentTrack.image[recentTrack.image.length - 1]['#text'] : null;
+                const recentCover = recentCoverUrl ? await fetchImageAsBase64(recentCoverUrl) : null;
                 return {
                     nowPlaying: false,
                     title: truncateText(recentTrack.name, 150),
                     artist: truncateText(recentTrack.artist['#text'], 220),
-                    cover: recentTrack.image && recentTrack.image.length > 0 ? recentTrack.image[recentTrack.image.length - 1]['#text'] : '/placeholder.png', // Fallback to placeholder
+                    cover: recentCover || '/placeholder.png', // Fallback to placeholder
                     bar_color: CONFIG.bar_color,
                     bar_positions: [], // No bars for recently played songs
                     bar_width: CONFIG.bar_width,
@@ -81,7 +101,7 @@ async function getLatestTrackData() {
                 nowPlaying,
                 title,
                 artist,
-                cover,
+                cover: cover || '/placeholder.png', // Fallback to placeholder
                 bar_color: CONFIG.bar_color,
                 bar_positions: nowPlaying ? Array.from({ length: CONFIG.num_bars }, (_, i) => i * (CONFIG.bar_width + CONFIG.gap_size)) : [],
                 bar_width: CONFIG.bar_width,
