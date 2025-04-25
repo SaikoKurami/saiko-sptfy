@@ -58,7 +58,7 @@ async function getLatestTrackData() {
             const nowPlaying = track['@attr'] && track['@attr'].nowplaying === 'true';
             const title = truncateText(track.name, 220); // Truncate title to fit within 220px
             const artist = truncateText(track.artist['#text'], 185); // Truncate artist to fit within 220px
-            const cover = track.image && track.image.length > 0 ? track.image[track.image.length - 1]['#text'] : '';
+            const cover = track.image && track.image.length > 0 ? track.image[track.image.length - 1]['#text'] : '/placeholder.png'; // Fallback to placeholder
 
             // If no "now playing" track, get the most recently played song
             if (!nowPlaying && data.recenttracks.track.length > 1) {
@@ -67,7 +67,7 @@ async function getLatestTrackData() {
                     nowPlaying: false,
                     title: truncateText(recentTrack.name, 150),
                     artist: truncateText(recentTrack.artist['#text'], 220),
-                    cover: recentTrack.image && recentTrack.image.length > 0 ? recentTrack.image[recentTrack.image.length - 1]['#text'] : '',
+                    cover: recentTrack.image && recentTrack.image.length > 0 ? recentTrack.image[recentTrack.image.length - 1]['#text'] : '/placeholder.png', // Fallback to placeholder
                     bar_color: CONFIG.bar_color,
                     bar_positions: [], // No bars for recently played songs
                     bar_width: CONFIG.bar_width,
