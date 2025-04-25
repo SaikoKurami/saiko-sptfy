@@ -13,7 +13,7 @@ A simple project to display your currently playing or recently played track from
 ## Getting Started
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) installed on your machine.
+- Installed [Node.js](https://nodejs.org/).
 - A Last.fm account with an API key.
 
 ### Installation
@@ -68,7 +68,7 @@ Change the `bar_color` property to any valid CSS color to customize the bar colo
 ## Showcase
 Embed the SVG in your project or website:
 ```html
-<img src="https://saiko-sptfy.onrender.com/saikokurami/" alt="Now Playing">
+<img src="https://saiko-sptfy.com/saikokurami/">
 ```
 
 ## Contributing
