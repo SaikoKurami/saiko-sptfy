@@ -97,8 +97,8 @@ async function getLatestTrackData() {
                 const recentCover = recentCoverUrl === "database64" ? "" : await fetchImageAsBase64(recentCoverUrl);
                 return {
                     nowPlaying: false,
-                    title: truncateText(recentTrack.name, 150),
-                    artist: truncateText(recentTrack.artist['#text'], 220),
+                    title: truncateText(recentTrack.name, 220),
+                    artist: truncateText(recentTrack.artist['#text'], 185),
                     cover: recentCover || '/placeholder.png',
                     bar_color: CONFIG.bar_color,
                     bar_positions: Array.from({ length: CONFIG.num_bars }, (_, i) => i * (CONFIG.bar_width + CONFIG.gap_size)), // Default positions
