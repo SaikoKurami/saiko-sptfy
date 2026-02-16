@@ -69,7 +69,7 @@ Change the `bar_color` property to any valid CSS color to customize the bar colo
 ## Showcase
 Embed the SVG in your project or website:
 ```html
-<img src="https://saiko-sptfy.com/saikokurami/">
+<img src="https://saiko-sptfy-v7dt.com/saikokurami/">
 ```
 
 ## Contributing
