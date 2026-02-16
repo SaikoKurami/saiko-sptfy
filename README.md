@@ -8,9 +8,9 @@ A simple project to display your currently playing or recently played track from
 - Outputs an SVG image that can be embedded anywhere.
 
 ## Demo
-![Saiko Spotify Now Playing](https://saiko-sptfy.onrender.com/saikokurami/)
+![Saiko Spotify Now Playing](https://saiko-sptfy-v7dt.onrender.com/saikokurami/)
 
-![Saiko Spotify Now Playing](https://saiko-sptfy.onrender.com/saikokurami/?bg=https://saikokurami.github.io/assets/sptfy-background.png)
+![Saiko Spotify Now Playing](https://saiko-sptfy-v7dt.onrender.com/saikokurami/?bg=https://saikokurami.github.io/assets/sptfy-background.png)
 ## Getting Started
 
 ### Prerequisites
