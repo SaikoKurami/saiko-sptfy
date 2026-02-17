@@ -26,6 +26,7 @@ const CONFIG = {
     gap_size: 2,
     bar_width: 4,
     bar_color: '${barcolor}',
+    text_color: '${textcolor}',
     bar_length: 6,
     get container_width() {
         return this.num_bars * this.bar_width + (this.num_bars - 1) * this.gap_size;
@@ -33,10 +34,23 @@ const CONFIG = {
     css_bar: ''
 };
 
-function truncateText(text, maxWidth, charWidth = 7) {
-    const maxChars = Math.floor(maxWidth / charWidth);
-    return text.length > maxChars ? text.slice(0, maxChars - 3) + '...' : text;
+function containsJapanese(text) {
+    return /[\u3000-\u30FF\u4E00-\u9FFF]/.test(text);
 }
+
+function truncateText(text, maxWidth) {
+    const isJapanese = containsJapanese(text);
+
+    // Japanese characters are visually wider
+    const charWidth = isJapanese ? 14 : 7;
+
+    const maxChars = Math.floor(maxWidth / charWidth);
+
+    return text.length > maxChars
+        ? text.slice(0, maxChars - 1) + '…'
+        : text;
+}
+
 
 async function fetchBackgroundAsBase64(url) {
     try {
@@ -88,8 +102,8 @@ async function getLatestTrackData(username) {
             const track = data.recenttracks.track[0];
             const nowPlaying = track['@attr'] && track['@attr'].nowplaying === 'true';
 
-            const title = truncateText(track.name, 220);
-            const artist = truncateText(track.artist['#text'], 185);
+            const title = truncateText(track.name, 185);
+            const artist = truncateText(track.artist['#text'], 300);
 
 let coverUrl = track.image && track.image.length > 0
     ? track.image[track.image.length - 1]['#text']
@@ -169,6 +183,31 @@ app.get('/:username', async (req, res) => {
 
         if (isValidHex || isValidCSSColor) {
             trackData.bar_color = barColor;
+        }
+    }
+
+
+
+        let textColor = req.query.textcolor;
+
+    if (textColor) {
+        textColor = textColor.trim();
+
+
+        if (/^[0-9A-F]{3,6}$/i.test(textColor)) {
+            textColor = `#${textColor}`;
+        }
+
+
+        const isValidHex = /^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(textColor);
+
+
+        const isValidCSSColor =
+            /^rgb\((\d{1,3},\s?\d{1,3},\s?\d{1,3})\)$/i.test(textColor) ||
+            /^[a-z]+$/i.test(textColor);
+
+        if (isValidHex || isValidCSSColor) {
+            trackData.text_color = textColor;
         }
     }
 
