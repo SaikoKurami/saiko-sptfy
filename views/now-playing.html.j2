@@ -2,16 +2,16 @@
     <title id="cardTitle">Now playing on Spotify</title>
     <style>
         svg {
-            background-image: url('{{ backgroundImage }}'); /* Ensure Base64 image is properly wrapped in quotes */
+            background-image: url('{{ backgroundImage }}');
             background-repeat: no-repeat;
             background-size: cover;
         }
+
         .song {
             fill: {{ text_color }};
             font-weight: 700;
             font-size: 14px;
             font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
-            width: 220px; /* Limit the width to 220px */
         }
 
         .artist {
@@ -20,12 +20,23 @@
             opacity: 0.8;
             font-size: 12px;
             font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
-             max-width: 100px; /* Limit the width to 220px */
+        }
+
+        .time {
+            fill: {{ text_color }};
+            opacity: 0.6;
+            font-size: 10px;
+            font-weight: 500;
+            font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
         }
 
         .bar {
             fill: {{ bar_color }};
             animation: sound 0ms -800ms linear infinite alternate;
+        }
+
+        .bars rect:nth-child(-n+{{ barnumber }}) {
+            display: none;
         }
 
         .bars {
@@ -35,41 +46,61 @@
         @keyframes sound {
             0% {
                 opacity: .35;
-                height: 3px; /* Start with a smaller height */
+                height: 3px;
             }
-
             100% {
                 opacity: 1;
-                height: {{ bar_length }}px; /* Use dynamic bar length */
+                height: {{ bar_length }}px;
             }
         }
     </style>
+
     {% if nowPlaying %}
         <foreignObject x="10" y="10" width="64" height="64">
             <div xmlns="http://www.w3.org/1999/xhtml" style="width: 64px; height: 64px; border-radius: 3px; overflow: hidden;">
                 <img src="{{ cover }}" width="64" height="64" style="border-radius: 3px;" />
             </div>
         </foreignObject>
-        <text x="85" y="51" class="artist">{{ artist }}</text>
+
         <text x="85" y="30" class="song">{{ title }}</text>
+        <text x="85" y="48" class="artist">{{ artist }}</text>
+        <text x="85" y="65" class="time">{{ timePlayed }}</text>
+
         <g class="bars">
             {% for position in bar_positions %}
-                <rect id="bar-{{ loop.index }}" x="{{ position }}" y="0" width="{{ bar_width }}" height="{{ bar_length }}" class="bar" style="animation-duration: {{ 400 + (loop.index * 30) }}ms;"></rect>
+                <rect id="bar-{{ loop.index }}" 
+                      x="{{ position }}" 
+                      y="4" 
+                      width="{{ bar_width }}" 
+                      height="{{ bar_length }}" 
+                      class="bar" 
+                      style="animation-duration: {{ 400 + (loop.index * 30) }}ms;">
+                </rect>
             {% endfor %}
         </g>
+
     {% else %}
         <foreignObject x="10" y="10" width="64" height="64">
             <div xmlns="http://www.w3.org/1999/xhtml" style="width: 64px; height: 64px; border-radius: 3px; overflow: hidden;">
                 <img src="{{ cover }}" width="64" height="64" style="border-radius: 3px;" />
             </div>
         </foreignObject>
-        <text x="85" y="51" class="artist">{{ artist }}</text>
+
         <text x="85" y="30" class="song">{{ title }}</text>
+        <text x="85" y="48" class="artist">{{ artist }}</text>
+        <text x="85" y="66" class="time">{{ timePlayed }}</text>
+
         <g class="bars">
             {% for position in bar_positions %}
-                <rect id="bar-{{ loop.index }}" x="{{ position }}" y="0" width="{{ bar_width }}" height="1" class="bar" style="opacity: 1; animation: none;"></rect>
+                <rect id="bar-{{ loop.index }}" 
+                      x="{{ position }}" 
+                      y="5" 
+                      width="{{ bar_width }}" 
+                      height="1" 
+                      class="bar" 
+                      style="opacity: 1; animation: none;">
+                </rect>
             {% endfor %}
         </g>
     {% endif %}
 </svg>
-
