@@ -6,21 +6,21 @@
             background-repeat: no-repeat;
             background-size: cover;
         }
-        .artist {
-            fill: #f4f4f4;
-            font-weight: 500;
+        .song {
+            fill: {{ text_color }};
+            font-weight: 700;
             font-size: 14px;
             font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
             width: 220px; /* Limit the width to 220px */
-            white-space: nowrap; /* Prevent text wrapping */
-            overflow: hidden; /* Hide overflow */
-            text-overflow: ellipsis; /* Add ellipsis for overflow */
         }
 
-        .song {
-            fill: #dbdbdc;
-            font-size: 14px;
+        .artist {
+            fill: {{ text_color }};
+            font-weight: 500;
+            opacity: 0.8;
+            font-size: 12px;
             font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
+             max-width: 100px; /* Limit the width to 220px */
         }
 
         .bar {
@@ -50,8 +50,8 @@
                 <img src="{{ cover }}" width="64" height="64" style="border-radius: 3px;" />
             </div>
         </foreignObject>
-        <text x="85" y="30" class="artist">{{ artist }}</text>
-        <text x="85" y="50" class="song">{{ title }}</text>
+        <text x="85" y="51" class="artist">{{ artist }}</text>
+        <text x="85" y="30" class="song">{{ title }}</text>
         <g class="bars">
             {% for position in bar_positions %}
                 <rect id="bar-{{ loop.index }}" x="{{ position }}" y="0" width="{{ bar_width }}" height="{{ bar_length }}" class="bar" style="animation-duration: {{ 400 + (loop.index * 30) }}ms;"></rect>
@@ -64,7 +64,7 @@
             </div>
         </foreignObject>
         <text x="85" y="30" class="artist">{{ artist }}</text>
-        <text x="85" y="50" class="song">{{ title }}</text>
+        <text x="85" y="51" class="song">{{ title }}</text>
         <g class="bars">
             {% for position in bar_positions %}
                 <rect id="bar-{{ loop.index }}" x="{{ position }}" y="0" width="{{ bar_width }}" height="1" class="bar" style="opacity: 1; animation: none;"></rect>
