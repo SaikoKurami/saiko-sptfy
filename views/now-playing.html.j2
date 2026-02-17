@@ -63,8 +63,8 @@
                 <img src="{{ cover }}" width="64" height="64" style="border-radius: 3px;" />
             </div>
         </foreignObject>
-        <text x="85" y="30" class="artist">{{ artist }}</text>
-        <text x="85" y="51" class="song">{{ title }}</text>
+        <text x="85" y="51" class="artist">{{ artist }}</text>
+        <text x="85" y="30" class="song">{{ title }}</text>
         <g class="bars">
             {% for position in bar_positions %}
                 <rect id="bar-{{ loop.index }}" x="{{ position }}" y="0" width="{{ bar_width }}" height="1" class="bar" style="opacity: 1; animation: none;"></rect>
@@ -72,3 +72,4 @@
         </g>
     {% endif %}
 </svg>
+
