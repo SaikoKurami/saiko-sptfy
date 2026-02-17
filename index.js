@@ -40,10 +40,7 @@ function containsJapanese(text) {
 
 function truncateText(text, maxWidth) {
     const isJapanese = containsJapanese(text);
-
-    // Japanese characters are visually wider
     const charWidth = isJapanese ? 14 : 7;
-
     const maxChars = Math.floor(maxWidth / charWidth);
 
     return text.length > maxChars
@@ -51,20 +48,32 @@ function truncateText(text, maxWidth) {
         : text;
 }
 
+function formatTimeAgo(unixTimestamp) {
+    const now = Date.now();
+    const playedAt = parseInt(unixTimestamp, 10) * 1000;
+    const diffMs = now - playedAt;
+
+    const seconds = Math.floor(diffMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (seconds < 60) return `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
+    if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    return `${days} day${days !== 1 ? 's' : ''} ago`;
+}
 
 async function fetchBackgroundAsBase64(url) {
     try {
         const response = await fetch(url);
-        if (!response.ok) {
-            console.error(`Error fetching background image: ${response.status} ${response.statusText}`);
-            return null;
-        }
+        if (!response.ok) return null;
         const buffer = await response.arrayBuffer();
         const base64 = Buffer.from(buffer).toString('base64');
         const mimeType = response.headers.get('content-type');
         return `data:${mimeType};base64,${base64}`;
     } catch (error) {
-        console.error('Error converting background image to Base64:', error.message);
+        console.error('Background conversion error:', error.message);
         return null;
     }
 }
@@ -72,16 +81,13 @@ async function fetchBackgroundAsBase64(url) {
 async function fetchImageAsBase64(url) {
     try {
         const response = await fetch(url);
-        if (!response.ok) {
-            console.error(`Error fetching image: ${response.status} ${response.statusText}`);
-            return null;
-        }
+        if (!response.ok) return null;
         const buffer = await response.arrayBuffer();
         const base64 = Buffer.from(buffer).toString('base64');
         const mimeType = response.headers.get('content-type');
         return `data:${mimeType};base64,${base64}`;
     } catch (error) {
-        console.error('Error converting image to Base64:', error.message);
+        console.error('Image conversion error:', error.message);
         return null;
     }
 }
@@ -91,10 +97,7 @@ async function getLatestTrackData(username) {
         const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${LASTFM_API_KEY}&format=json`;
         const response = await fetch(url);
 
-        if (!response.ok) {
-            console.error(`Error fetching data: ${response.status} ${response.statusText}`);
-            return { error: 'Error fetching data' };
-        }
+        if (!response.ok) return { error: 'Error fetching data' };
 
         const data = await response.json();
 
@@ -105,36 +108,52 @@ async function getLatestTrackData(username) {
             const title = truncateText(track.name, 185);
             const artist = truncateText(track.artist['#text'], 300);
 
-let coverUrl = track.image && track.image.length > 0
-    ? track.image[track.image.length - 1]['#text']
-    : null;
 
-let cover = null;
+            let timePlayed;
+            if (nowPlaying) {
+                timePlayed = "Playing now";
+            } else if (track.date && track.date.uts) {
+                timePlayed = formatTimeAgo(track.date.uts);
+            } else {
+                timePlayed = "";
+            }
 
-if (
-    coverUrl &&
-    coverUrl !== 'https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png'
-) {
-    cover = await fetchImageAsBase64(coverUrl);
-}
 
-if (!cover) {
-    cover = EMPTY_COVER;
-}
+            const defaultChars = 14;
+            const defaultBars = 13;
+            const barnumber = Math.min(
+                Math.round((timePlayed.length * defaultBars) / defaultChars),
+                CONFIG.num_bars
+            );
+
+            let coverUrl =
+                track.image && track.image.length > 0
+                    ? track.image[track.image.length - 1]['#text']
+                    : null;
+
+            let cover = null;
+            if (coverUrl && coverUrl !== 'https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png') {
+                cover = await fetchImageAsBase64(coverUrl);
+            }
+
+            if (!cover) cover = EMPTY_COVER;
 
             return {
                 nowPlaying,
+                timePlayed,
                 title,
                 artist,
                 cover: cover || '/placeholder.png',
                 bar_color: CONFIG.bar_color,
+                text_color: CONFIG.text_color,
                 bar_positions: Array.from(
                     { length: CONFIG.num_bars },
                     (_, i) => i * (CONFIG.bar_width + CONFIG.gap_size)
                 ),
                 bar_width: CONFIG.bar_width,
                 bar_length: CONFIG.bar_length,
-                container_width: CONFIG.container_width
+                container_width: CONFIG.container_width,
+                barnumber
             };
         } else {
             return { error: 'No track data available' };
@@ -145,68 +164,34 @@ if (!cover) {
     }
 }
 
-
 app.get('/:username', async (req, res) => {
     const username = req.params.username;
-
-    if (!username) {
-        return res.status(400).send('Username is required.');
-    }
+    if (!username) return res.status(400).send('Username is required.');
 
     const trackData = await getLatestTrackData(username);
 
     const backgroundUrl = req.query.bg;
     if (backgroundUrl) {
         const backgroundBase64 = await fetchBackgroundAsBase64(backgroundUrl);
-        if (backgroundBase64) {
-            trackData.backgroundImage = backgroundBase64;
-        }
+        if (backgroundBase64) trackData.backgroundImage = backgroundBase64;
     }
 
-        let barColor = req.query.barcolor;
-
+    // Bar Color
+    let barColor = req.query.barcolor;
     if (barColor) {
         barColor = barColor.trim();
-
-
-        if (/^[0-9A-F]{3,6}$/i.test(barColor)) {
-            barColor = `#${barColor}`;
-        }
-
-
-        const isValidHex = /^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(barColor);
-
-
-        const isValidCSSColor =
-            /^rgb\((\d{1,3},\s?\d{1,3},\s?\d{1,3})\)$/i.test(barColor) ||
-            /^[a-z]+$/i.test(barColor);
-
-        if (isValidHex || isValidCSSColor) {
+        if (/^[0-9A-F]{3,6}$/i.test(barColor)) barColor = `#${barColor}`;
+        if (/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(barColor) || /^rgb\((\d{1,3},\s?\d{1,3},\s?\d{1,3})\)$/i.test(barColor) || /^[a-z]+$/i.test(barColor)) {
             trackData.bar_color = barColor;
         }
     }
 
-
-
-        let textColor = req.query.textcolor;
-
+    // Text Color
+    let textColor = req.query.textcolor;
     if (textColor) {
         textColor = textColor.trim();
-
-
-        if (/^[0-9A-F]{3,6}$/i.test(textColor)) {
-            textColor = `#${textColor}`;
-        }
-
-
-        const isValidHex = /^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(textColor);
-
-
-        const isValidCSSColor =
-            /^rgb\((\d{1,3},\s?\d{1,3},\s?\d{1,3})\)$/i.test(textColor) ||
-            /^[a-z]+$/i.test(textColor);
-
-        if (isValidHex || isValidCSSColor) {
+        if (/^[0-9A-F]{3,6}$/i.test(textColor)) textColor = `#${textColor}`;
+        if (/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(textColor) || /^rgb\((\d{1,3},\s?\d{1,3},\s?\d{1,3})\)$/i.test(textColor) || /^[a-z]+$/i.test(textColor)) {
             trackData.text_color = textColor;
         }
     }
