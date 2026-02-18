@@ -72,7 +72,7 @@ The server will run at `http://localhost:3000`.
 Example:
 
 ```
-https://saiko-sptfy-v7dt.onrender.com/saikokurami/?bg=https://example.com/bg.png&barcolor=#73becb&textcolor=#ffffff
+http://https://example.com/username/?&barcolor=ffffff&textcolor=ffffff&bg=https://example.com/bg.png
 ```
 
 ## Showcase
@@ -80,7 +80,7 @@ https://saiko-sptfy-v7dt.onrender.com/saikokurami/?bg=https://example.com/bg.png
 Embed the SVG in your project or website:
 
 ```html
-<img src="https://saiko-sptfy-v7dt.onrender.com/saikokurami/">
+<img src="https://saiko-sptfy-v7dt.onrender.com/saikokurami?barcolor=73becb&textcolor=f4f4f4&bg=https://saikokurami.github.io/assets/sptfy-background.png">
 ```
 
 ## Contributing
