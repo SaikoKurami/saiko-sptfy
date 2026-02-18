@@ -25,13 +25,12 @@ const CONFIG = {
     num_bars: 37,
     gap_size: 2,
     bar_width: 4,
-    bar_color: '${barcolor}',
-    text_color: '${textcolor}',
+    bar_color: '#73becb',
+    text_color: '#ffffff',
     bar_length: 6,
     get container_width() {
         return this.num_bars * this.bar_width + (this.num_bars - 1) * this.gap_size;
-    },
-    css_bar: ''
+    }
 };
 
 function containsJapanese(text) {
@@ -64,27 +63,15 @@ function formatTimeAgo(unixTimestamp) {
     return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
-async function fetchBackgroundAsBase64(url) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) return null;
-        const buffer = await response.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString('base64');
-        const mimeType = response.headers.get('content-type');
-        return `data:${mimeType};base64,${base64}`;
-    } catch (error) {
-        console.error('Background conversion error:', error.message);
-        return null;
-    }
-}
-
 async function fetchImageAsBase64(url) {
     try {
         const response = await fetch(url);
         if (!response.ok) return null;
+
         const buffer = await response.arrayBuffer();
         const base64 = Buffer.from(buffer).toString('base64');
         const mimeType = response.headers.get('content-type');
+
         return `data:${mimeType};base64,${base64}`;
     } catch (error) {
         console.error('Image conversion error:', error.message);
@@ -92,7 +79,7 @@ async function fetchImageAsBase64(url) {
     }
 }
 
-async function getLatestTrackData(username) {
+async function getLatestTrackData(username, emptyCoverUrl) {
     try {
         const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${LASTFM_API_KEY}&format=json`;
         const response = await fetch(url);
@@ -101,63 +88,74 @@ async function getLatestTrackData(username) {
 
         const data = await response.json();
 
-        if (data.recenttracks && data.recenttracks.track && data.recenttracks.track.length > 0) {
-            const track = data.recenttracks.track[0];
-            const nowPlaying = track['@attr'] && track['@attr'].nowplaying === 'true';
-
-            const title = truncateText(track.name, 185);
-            const artist = truncateText(track.artist['#text'], 300);
-
-
-            let timePlayed;
-            if (nowPlaying) {
-                timePlayed = "Playing now";
-            } else if (track.date && track.date.uts) {
-                timePlayed = formatTimeAgo(track.date.uts);
-            } else {
-                timePlayed = "";
-            }
-
-
-            const defaultChars = 14;
-            const defaultBars = 13;
-            const barnumber = Math.min(
-                Math.ceil((timePlayed.length * defaultBars) / defaultChars),
-                CONFIG.num_bars
-            );
-
-            let coverUrl =
-                track.image && track.image.length > 0
-                    ? track.image[track.image.length - 1]['#text']
-                    : null;
-
-            let cover = null;
-            if (coverUrl && coverUrl !== 'https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png') {
-                cover = await fetchImageAsBase64(coverUrl);
-            }
-
-            if (!cover) cover = EMPTY_COVER;
-
-            return {
-                nowPlaying,
-                timePlayed,
-                title,
-                artist,
-                cover: cover || '/placeholder.png',
-                bar_color: CONFIG.bar_color,
-                text_color: CONFIG.text_color,
-                bar_positions: Array.from(
-                    { length: CONFIG.num_bars },
-                    (_, i) => i * (CONFIG.bar_width + CONFIG.gap_size)
-                ),
-                bar_width: CONFIG.bar_width,
-                bar_length: CONFIG.bar_length,
-                container_width: CONFIG.container_width,
-                barnumber
-            };
-        } else {
+        if (!data?.recenttracks?.track?.length) {
             return { error: 'No track data available' };
         }
+
+        const track = data.recenttracks.track[0];
+        const nowPlaying = track['@attr']?.nowplaying === 'true';
+
+        const title = truncateText(track.name, 185);
+        const artist = truncateText(track.artist['#text'], 300);
+
+        let timePlayed = '';
+        if (nowPlaying) {
+            timePlayed = "Playing now";
+        } else if (track.date?.uts) {
+            timePlayed = formatTimeAgo(track.date.uts);
+        }
+
+        const defaultChars = 14;
+        const defaultBars = 13;
+        const barnumber = Math.min(
+            Math.ceil((timePlayed.length * defaultBars) / defaultChars),
+            CONFIG.num_bars
+        );
+
+        // ===== COVER LOGIC =====
+        let cover = null;
+
+        let coverUrl =
+            track.image?.length > 0
+                ? track.image[track.image.length - 1]['#text']
+                : null;
+
+        // Try Last.fm cover first
+        if (
+            coverUrl &&
+            coverUrl !== 'https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png'
+        ) {
+            cover = await fetchImageAsBase64(coverUrl);
+        }
+
+        // If Last.fm failed → use ?cover=
+        if (!cover && emptyCoverUrl) {
+            cover = await fetchImageAsBase64(emptyCoverUrl);
+        }
+
+        // If still nothing → use .env EMPTY_COVER
+        if (!cover && EMPTY_COVER) {
+            cover = await fetchImageAsBase64(EMPTY_COVER);
+        }
+
+        return {
+            nowPlaying,
+            timePlayed,
+            title,
+            artist,
+            cover,
+            bar_color: CONFIG.bar_color,
+            text_color: CONFIG.text_color,
+            bar_positions: Array.from(
+                { length: CONFIG.num_bars },
+                (_, i) => i * (CONFIG.bar_width + CONFIG.gap_size)
+            ),
+            bar_width: CONFIG.bar_width,
+            bar_length: CONFIG.bar_length,
+            container_width: CONFIG.container_width,
+            barnumber
+        };
+
     } catch (error) {
         console.error('Error occurred:', error.message);
         return { error: error.message };
@@ -168,11 +166,12 @@ app.get('/:username', async (req, res) => {
     const username = req.params.username;
     if (!username) return res.status(400).send('Username is required.');
 
-    const trackData = await getLatestTrackData(username);
+    const emptyCoverUrl = req.query.cover || null;
+    const trackData = await getLatestTrackData(username, emptyCoverUrl);
 
-    const backgroundUrl = req.query.bg;
-    if (backgroundUrl) {
-        const backgroundBase64 = await fetchBackgroundAsBase64(backgroundUrl);
+    // Background image
+    if (req.query.bg) {
+        const backgroundBase64 = await fetchImageAsBase64(req.query.bg);
         if (backgroundBase64) trackData.backgroundImage = backgroundBase64;
     }
 
@@ -181,7 +180,9 @@ app.get('/:username', async (req, res) => {
     if (barColor) {
         barColor = barColor.trim();
         if (/^[0-9A-F]{3,6}$/i.test(barColor)) barColor = `#${barColor}`;
-        if (/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(barColor) || /^rgb\((\d{1,3},\s?\d{1,3},\s?\d{1,3})\)$/i.test(barColor) || /^[a-z]+$/i.test(barColor)) {
+        if (/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(barColor) ||
+            /^rgb\((\d{1,3},\s?\d{1,3},\s?\d{1,3})\)$/i.test(barColor) ||
+            /^[a-z]+$/i.test(barColor)) {
             trackData.bar_color = barColor;
         }
     }
@@ -191,7 +192,9 @@ app.get('/:username', async (req, res) => {
     if (textColor) {
         textColor = textColor.trim();
         if (/^[0-9A-F]{3,6}$/i.test(textColor)) textColor = `#${textColor}`;
-        if (/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(textColor) || /^rgb\((\d{1,3},\s?\d{1,3},\s?\d{1,3})\)$/i.test(textColor) || /^[a-z]+$/i.test(textColor)) {
+        if (/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(textColor) ||
+            /^rgb\((\d{1,3},\s?\d{1,3},\s?\d{1,3})\)$/i.test(textColor) ||
+            /^[a-z]+$/i.test(textColor)) {
             trackData.text_color = textColor;
         }
     }
@@ -201,11 +204,9 @@ app.get('/:username', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.send('Usage: http://localhost:3000/<lastfm-username>?bg=https://image-url.com/bg.png');
+    res.send('Usage: http://localhost:3000/<lastfm-username>?cover=https://image-url.com/cover.png');
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server running at http://localhost:${PORT}`);
 });
-
-
