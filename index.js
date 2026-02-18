@@ -111,7 +111,7 @@ async function getLatestTrackData(username) {
 
             let timePlayed;
             if (nowPlaying) {
-                timePlayed = "Playing now ";
+                timePlayed = "Playing now";
             } else if (track.date && track.date.uts) {
                 timePlayed = formatTimeAgo(track.date.uts);
             } else {
@@ -207,4 +207,5 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+
 
