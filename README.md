@@ -42,7 +42,6 @@ A simple project to display your currently playing or recently played track from
    ```env
    LASTFM_API_KEY=your_lastfm_api_key
    LASTFM_USERNAME=your_lastfm_username
-   EMPTY_COVER=data:image/png;base64,xxxxxxx
    ```
 
    * Replace `your_lastfm_api_key` and `your_lastfm_username` with your Last.fm API key and username.
