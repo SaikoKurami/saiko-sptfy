@@ -10,9 +10,9 @@ A simple project to display your currently playing or recently played track from
 
 ## Demo
 
-![Saiko Spotify Now Playing ](https://saiko-sptfy-v7dt.onrender.com/saikokurami?barcolor=73becb&textcolor=f4f4f4)
+![Saiko Spotify Now Playing ](https://saiko-sptfy-v7dt.onrender.com/saikokurami?textcolor=f4f4f4&barcolor=73becb)
 
-![Saiko Spotify Now Playing with Background ](https://saiko-sptfy-v7dt.onrender.com/saikokurami?barcolor=73becb&textcolor=f4f4f4&bg=https://saikokurami.github.io/assets/sptfy-background.png)
+![Saiko Spotify Now Playing with Background ](https://saiko-sptfy-v7dt.onrender.com/saikokurami?textcolor=f4f4f4&barcolor=73becb&bg=https://saikokurami.github.io/assets/sptfy-background.png)
 
 ## Getting Started
 
