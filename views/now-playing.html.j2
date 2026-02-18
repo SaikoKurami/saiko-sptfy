@@ -25,7 +25,7 @@
         .time {
             fill: {{ text_color }};
             opacity: 0.6;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 500;
             font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
         }
@@ -34,7 +34,7 @@
             fill: {{ bar_color }};
             animation: sound 0ms -800ms linear infinite alternate;
         }
-
+        
         .bars rect:nth-child(-n+{{ barnumber }}) {
             display: none;
         }
@@ -64,7 +64,12 @@
 
         <text x="85" y="30" class="song">{{ title }}</text>
         <text x="85" y="48" class="artist">{{ artist }}</text>
-        <text x="85" y="66" class="time">{{ timePlayed }}</text>
+        <text x="94" y="66" class="time">{{ timePlayed }}</text>
+
+        <!-- Blinking circle next to timePlayed -->
+        <circle cx="86" cy="62.6" r="2" fill="1ed760">
+            <animate attributeName="fill" values="1ed760;1ed760;9ca1a8" dur="1.5s" repeatCount="indefinite" />
+        </circle>
 
         <g class="bars">
             {% for position in bar_positions %}
@@ -88,7 +93,10 @@
 
         <text x="85" y="30" class="song">{{ title }}</text>
         <text x="85" y="48" class="artist">{{ artist }}</text>
-        <text x="85" y="66" class="time">{{ timePlayed }}</text>
+        <text x="94" y="66" class="time">{{ timePlayed }}</text>
+
+        <!-- Static white circle when not playing -->
+        <circle cx="86" cy="62.6" r="2" fill="white" opacity="0.6" />
 
         <g class="bars">
             {% for position in bar_positions %}
@@ -104,4 +112,3 @@
         </g>
     {% endif %}
 </svg>
-
