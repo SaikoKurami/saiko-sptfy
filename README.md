@@ -43,8 +43,7 @@ A simple project to display your currently playing or recently played track from
    LASTFM_API_KEY=your_lastfm_api_key
    ```
 
-   * Replace `your_lastfm_api_key` and `your_lastfm_username` with your Last.fm API key and username.
-   * Replace `EMPTY_COVER` with a Base64 string of a default cover image to use when the track has no cover.
+   * Replace `your_lastfm_api_key` with your Last.fm API key.
 
 ### Running the Project
 
