@@ -67,7 +67,7 @@
         <text x="94" y="66" class="time">{{ timePlayed }}</text>
 
         <!-- Blinking circle next to timePlayed -->
-        <circle cx="86" cy="62.6" r="2" fill="1ed760">
+        <circle cx="87" cy="62.6" r="2" fill="1ed760">
             <animate attributeName="fill" values="1ed760;1ed760;9ca1a8" dur="1.5s" repeatCount="indefinite" />
         </circle>
 
@@ -96,7 +96,7 @@
         <text x="94" y="66" class="time">{{ timePlayed }}</text>
 
         <!-- Static white circle when not playing -->
-        <circle cx="86" cy="62.6" r="2" fill="white" opacity="0.6" />
+        <circle cx="87" cy="62.6" r="2" fill="white" opacity="0.6" />
 
         <g class="bars">
             {% for position in bar_positions %}
@@ -112,3 +112,4 @@
         </g>
     {% endif %}
 </svg>
+
