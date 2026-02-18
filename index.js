@@ -122,7 +122,7 @@ async function getLatestTrackData(username) {
             const defaultChars = 14;
             const defaultBars = 13;
             const barnumber = Math.min(
-                Math.round((timePlayed.length * defaultBars) / defaultChars),
+                Math.ceil((timePlayed.length * defaultBars) / defaultChars),
                 CONFIG.num_bars
             );
 
@@ -207,3 +207,4 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+
