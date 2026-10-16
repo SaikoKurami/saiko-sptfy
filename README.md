@@ -80,10 +80,6 @@ Embed the SVG in your project or website:
 <img src="https://saiko-sptfy-v7dt.onrender.com/saikokurami?barcolor=73becb&textcolor=f4f4f4&bg=https://saikokurami.github.io/assets/sptfy-background.png">
 ```
 
-## Contributing
-
-Feel free to fork this repository and submit pull requests. Contributions are welcome!
-
 ## License
 
 This project is licensed under the MIT License.
