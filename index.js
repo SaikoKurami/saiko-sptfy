@@ -27,6 +27,8 @@ if (!LASTFM_API_KEY) {
     process.exit(1);
 }
 
+// ===== CONFIGURATION =====
+
 const CONFIG = {
     num_bars: 37,
     gap_size: 2,
@@ -40,6 +42,8 @@ const CONFIG = {
             (this.num_bars - 1) * this.gap_size;
     }
 };
+
+// ===== TEXT FUNCTIONS =====
 
 function containsJapanese(text) {
     return /[\u3000-\u30FF\u4E00-\u9FFF]/.test(text);
@@ -102,7 +106,6 @@ async function fetchImageAsBase64(url) {
 
         const buffer = await response.arrayBuffer();
 
-        // Prevent excessively large images.
         if (buffer.byteLength > 10 * 1024 * 1024) {
             console.error('Image exceeds 10 MB limit.');
             return null;
@@ -118,40 +121,96 @@ async function fetchImageAsBase64(url) {
     }
 }
 
-// ===== LAST.FM API =====
+// ===== LAST.FM API REQUEST WITH RETRIES =====
+
+async function fetchLastFmData(username) {
+    const params = new URLSearchParams({
+        method: 'user.getrecenttracks',
+        user: username,
+        api_key: LASTFM_API_KEY,
+        format: 'json',
+        limit: '1'
+    });
+
+    const maxAttempts = 3;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const response = await fetch(
+                `${LASTFM_API_URL}?${params.toString()}`,
+                {
+                    headers: {
+                        'User-Agent': 'Saiko-Spotify-Now-Playing/2.0'
+                    },
+                    signal: AbortSignal.timeout(15000)
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(
+                        `Last.fm API ${data.error}: ${data.message}`
+                    );
+                }
+
+                return data;
+            }
+
+            const errorBody = await response.text();
+
+            console.error(
+                `Last.fm HTTP ${response.status}, attempt ${attempt}/${maxAttempts}:`,
+                errorBody.slice(0, 500)
+            );
+
+            const retryable = [
+                429, 500, 502, 503, 504
+            ].includes(response.status);
+
+            if (!retryable || attempt === maxAttempts) {
+                throw new Error(
+                    `Last.fm HTTP error: ${response.status}`
+                );
+            }
+
+        } catch (error) {
+            console.error(
+                `Last.fm request failed (${attempt}/${maxAttempts}):`,
+                error.message
+            );
+
+            if (attempt === maxAttempts) {
+                throw error;
+            }
+
+            // Retry network errors and timeouts.
+            if (
+                error.message.startsWith('Last.fm API ') ||
+                error.message.startsWith('Last.fm HTTP error:')
+            ) {
+                throw error;
+            }
+        }
+
+        // Exponential backoff: 2 seconds, then 4 seconds.
+        await new Promise(resolve =>
+            setTimeout(
+                resolve,
+                2000 * Math.pow(2, attempt - 1)
+            )
+        );
+    }
+
+    throw new Error('Last.fm returned no data after retries.');
+}
+
+// ===== GET LATEST TRACK =====
 
 async function getLatestTrackData(username, emptyCoverUrl) {
     try {
-        const params = new URLSearchParams({
-            method: 'user.getrecenttracks',
-            user: username,
-            api_key: LASTFM_API_KEY,
-            format: 'json',
-            limit: '1'
-        });
-
-        const response = await fetch(
-            `${LASTFM_API_URL}?${params.toString()}`,
-            {
-                headers: {
-                    'User-Agent': 'Saiko-Spotify-Now-Playing/2.0'
-                },
-                signal: AbortSignal.timeout(15000)
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(`Last.fm HTTP error: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Handle Last.fm API errors.
-        if (data.error) {
-            throw new Error(
-                `Last.fm API ${data.error}: ${data.message}`
-            );
-        }
+        const data = await fetchLastFmData(username);
 
         let tracks = data?.recenttracks?.track;
 
@@ -159,7 +218,7 @@ async function getLatestTrackData(username, emptyCoverUrl) {
             return { error: 'No track data available' };
         }
 
-        // Normalize the response in case Last.fm returns one object.
+        // Normalize single-track responses.
         if (!Array.isArray(tracks)) {
             tracks = [tracks];
         }
@@ -176,7 +235,9 @@ async function getLatestTrackData(username, emptyCoverUrl) {
         const title = truncateText(track.name, 185);
 
         const artist = truncateText(
-            track.artist?.['#text'] || track.artist?.name || '',
+            track.artist?.['#text'] ||
+            track.artist?.name ||
+            '',
             300
         );
 
@@ -201,7 +262,8 @@ async function getLatestTrackData(username, emptyCoverUrl) {
 
         const barnumber = Math.min(
             Math.ceil(
-                (timePlayed.length * defaultBars) / defaultChars
+                (timePlayed.length * defaultBars) /
+                defaultChars
             ),
             CONFIG.num_bars
         );
@@ -219,7 +281,7 @@ async function getLatestTrackData(username, emptyCoverUrl) {
             .filter(Boolean)
             .pop();
 
-        // 1. Try Last.fm album artwork.
+        // 1. Last.fm album artwork.
         if (
             coverUrl &&
             coverUrl !== LASTFM_DEFAULT_COVER
@@ -227,17 +289,17 @@ async function getLatestTrackData(username, emptyCoverUrl) {
             cover = await fetchImageAsBase64(coverUrl);
         }
 
-        // 2. Try ?cover= URL.
+        // 2. Custom ?cover= parameter.
         if (!cover && emptyCoverUrl) {
             cover = await fetchImageAsBase64(emptyCoverUrl);
         }
 
-        // 3. Try .env EMPTY_COVER.
+        // 3. .env EMPTY_COVER.
         if (!cover && EMPTY_COVER) {
             cover = await fetchImageAsBase64(EMPTY_COVER);
         }
 
-        // ===== RESPONSE DATA =====
+        // ===== RESPONSE =====
 
         return {
             nowPlaying,
@@ -252,7 +314,10 @@ async function getLatestTrackData(username, emptyCoverUrl) {
             bar_positions: Array.from(
                 { length: CONFIG.num_bars },
                 (_, i) =>
-                    i * (CONFIG.bar_width + CONFIG.gap_size)
+                    i * (
+                        CONFIG.bar_width +
+                        CONFIG.gap_size
+                    )
             ),
 
             bar_width: CONFIG.bar_width,
@@ -262,7 +327,7 @@ async function getLatestTrackData(username, emptyCoverUrl) {
         };
 
     } catch (error) {
-        console.error('Last.fm error:', error.message);
+        console.error('Error fetching track:', error.message);
 
         return {
             error: error.message
@@ -276,7 +341,9 @@ app.get('/:username', async (req, res) => {
     const username = req.params.username;
 
     if (!username) {
-        return res.status(400).send('Username is required.');
+        return res.status(400).send(
+            'Username is required.'
+        );
     }
 
     const emptyCoverUrl = req.query.cover || null;
@@ -359,12 +426,14 @@ app.get('/:username', async (req, res) => {
 
 app.get('/', (req, res) => {
     res.send(
-        'Usage: /<lastfm-username>?cover=https://image-url.com/cover.png'
+        'Usage: http://localhost:3000/<lastfm-username>?cover=https://image-url.com/cover.png'
     );
 });
 
 // ===== SERVER =====
 
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(
+        `Server running at http://localhost:${PORT}`
+    );
 });
